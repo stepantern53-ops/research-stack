@@ -48,6 +48,26 @@ curl.exe -s "http://localhost:8080/search?q=test&format=json"
 powershell -File stop.ps1    # docker compose stop
 ```
 
+## Установка ИИ-агентом (для LLM-агентов)
+
+Если ты LLM-агент и ставишь систему по этому README — выполняй шаги по порядку, после каждого проверяй ожидаемый результат. Отклонение = раздел «Troubleshooting» ниже. Кроме Docker ничего устанавливать не нужно, API-ключи не нужны.
+
+**Шаг 0 — проверка Docker.** Команда `docker --version` → ожидаем строку версии. Если ошибка/демон не отвечает: запусти Docker Desktop и опрашивай `docker ps` каждые 10 сек до успеха (лимит ожидания 5 минут).
+
+**Шаг 1 — клон и файлы.** `git clone https://github.com/stepantern53-ops/research-stack.git && cd research-stack`, затем `cd searxng` и скопируй `.env.example` → `.env` (Windows: `copy`, Linux/macOS: `cp`). Наполнение .env не требуется.
+
+**Шаг 2 — запуск.** `docker compose up -d` → ожидаем два контейнера: searxng-core (порт 8080) и searxng-valkey (без порта наружу). Проверка: `docker compose ps` — оба status Up/running.
+
+**Шаг 3 — проверка JSON API.** `curl -s "http://localhost:8080/search?q=test&format=json"` → ожидаем JSON с непустым полем `results`.
+
+**Шаг 4 — интеграция в omp (только для агентов omp).** Скопируй три блока из `omp-config/config.yml` (searxng / modelRoles.web / retry.fallbackChains.web) в `~/.omp/agent/config.yml` (глобально) или `<проект>/.omp/config.yml` (только для проекта). Перезапусти omp-сессию. Проверка: тул `web_search` возвращает источники; провайдер в ответе — SearXNG.
+
+**Troubleshooting:**
+- JSON-запрос возвращает 403 → в `searxng/core-config/settings.yml` секция `search.formats` должна содержать `json` (в этом репо уже содержит) → после правки `docker compose restart`.
+- Порт 8080 занят → в `searxng/.env` раскомментируй и поменяй `SEARXNG_PORT`, затем `docker compose up -d`; не забудь поменять порт в omp-конфиге.
+- 429 на JSON-запросах → убедись, что `server.limiter: false` (в этом репо так по умолчанию; лимитер нужен только для публичных инстансов).
+- Движки отдают 0 результатов → upstream-движки периодически ломаются; обнови образ: `docker compose pull && docker compose up -d`.
+
 ## Интеграция в omp
 
 Пример — см. `omp-config/config.yml`. Три куска конфига omp:
