@@ -1,0 +1,16 @@
+# Search-related slice of the omp config (example).
+# Shows how omp uses the local SearXNG instance as its web-search backend.
+
+searxng:
+  endpoint: "http://localhost:8080"
+
+modelRoles:
+  web: web/searxng
+
+retry:
+  fallbackChains:
+    web:
+      - web/exa
+      - web/tavily
+      - web/duckduckgo
+      - web/public
